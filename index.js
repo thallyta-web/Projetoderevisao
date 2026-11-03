@@ -1,6 +1,6 @@
-require("dotenv").config();
+require('dotenv').config();
 
-const { Paciente } = require("./db");
+const { Paciente } = require("./models");
 const port = process.env.PORT || 3000;
 
 const express = require("express");
@@ -33,7 +33,9 @@ app.post('/pacientes', async (req, res) => {
         });
         return res.status(201).json(novoPaciente);
     }catch (error) {
-        console.error("Erro ao cadastrar paciente:", error);}
+        console.error("Erro ao cadastrar paciente:", error);
+        return res.status(500).json({ error: "Erro interno no servidor"});
+    }
 });
 
 //Rota de Login (Gera token):
@@ -48,7 +50,7 @@ app.post('/login', async (req, res) => {
     }
 
     //Se estiverem corretas, gerar o token:
-    const token = jwt.sign({ userId: user.id, usuario: user.usuario }, JWT_SECRET, { expiresIn:'15m' });
+    const token = jwt.sign({ userId: user.id, usuario: user.usuario }, process.env.JWT_SECRET, { expiresIn:'15m' });
 
     //Enviar token para cliente:
     res.json({mensagem: 'Login bem-sucedido!', token: token});
@@ -65,7 +67,7 @@ function verificaJWT(req, res, next) {
     const token = authHeader.split(' ')[1]; //Dividindo a string em 2, baseado no " " e pegando apenas a posição 1.
 
     //Verifica se o token é válido:
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             if(err.name === 'TokenExpiredError') {
                 return res.status(401).json({mensagem: 'Token expirado.'}); //Se o erro for de expiração, a mensagem é mais específica, o resto geral.
@@ -83,7 +85,7 @@ function verificaJWT(req, res, next) {
 app.get('/pacientes', verificaJWT, async (req, res) => {
     console.log('Acessado por:', req.usuarioLogado);
     const pacientes = await Paciente.findAll();
-     res.json({mensagem: `Acesso permitido para o usuário: ${req.usuarioLogado.usuario}.`, Paciente});
+     res.json({mensagem: `Acesso permitido para o usuário: ${req.usuarioLogado.usuario}.`, pacientes});
 });
 
 //Mostra o paciente selecionado pelo id:
